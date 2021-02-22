@@ -5,6 +5,15 @@ from util.utils import recv_msg, send_msg, moving_average
 from config import tau_max
 
 
+# pytorch 辅助函数
+def weight_differentce_fn(w1, w2):
+    val_list = []
+    for key in w1.keys():
+        temp = w1[key] - w2[key]
+        val_list.append(temp.numpy().reshape(-1, 1).flatten())
+    flatten_val_list = [x for l in val_list for x in l]
+    return flatten_val_list
+
 class ControlAlgAdaptiveTauServer:
     def __init__(self, is_adapt_local, dim_w, client_sock_all, n_nodes, control_param_phi,
                  moving_average_holding_param):
@@ -149,7 +158,9 @@ class ControlAlgAdaptiveTauClient:
             c = self.grad_last_local_last_round - self.grad_last_global
 
             # pytorch 修改部分
-            tmp_norm = linalg.norm(self.w_last_local_last_round - w_last_global)
+            # tmp_norm = linalg.norm(self.w_last_local_last_round - w_last_global)
+            tmp_norm = linalg.norm(weight_differentce_fn(self.w_last_local_last_round, w_last_global))
+
             if tmp_norm > 1e-10:
                 self.beta_adapt = linalg.norm(c) / tmp_norm
             else:
